@@ -1,0 +1,11 @@
+def directoryHash(String fileDir) {
+    MD5 md5 = new MD5();
+    new File(fileDir).eachFileRecurse{ file ->
+        if (file.isFile()) {
+            String hashFile = MD5.asHex(MD5.getHash(new File(file.path)))
+            md5.Update(hashFile, null)
+        }
+    }
+    String hashFolder = md5.asHex()
+    return hashFolder
+}

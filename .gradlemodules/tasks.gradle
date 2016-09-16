@@ -1,0 +1,119 @@
+/*
+ * This file is part of the project gradle-base, licensed under the
+ * Creative Commons Attribution-NoDerivatives 4.0 International license.
+ *
+ * Copyright (c) 2016 Noki77 <dernoki77@gmail.com>
+ *
+ * You should have received a copy of the license along with this
+ * work. If not, see <http://creativecommons.org/licenses/by-nd/4.0/>.
+ *
+ * THIS SOFTWARE IS PROVIDED UNDER THE TERMS
+ * OF THIS CREATIVE COMMONS PUBLIC LICENSE ("CCPL" OR "LICENSE").
+ * THE SOFTWARE IS PROTECTED BY COPYRIGHT AND/OR OTHER APPLICABLE LAW.
+ * ANY USE OF THE WORK OTHER THAN AS AUTHORIZED UNDER THIS LICENSE
+ * OR COPYRIGHT LAW IS PROHIBITED.
+ *
+ * BY EXERCISING ANY RIGHTS TO THE SOFTWARE PROVIDED HERE,
+ * YOU ACCEPT AND AGREE TO BE BOUND BY THE TERMS OF THIS LICENSE.
+ * TO THE EXTENT THIS LICENSE MAY BE CONSIDERED TO BE A CONTRACT,
+ * THE LICENSOR GRANTS YOU THE RIGHTS CONTAINED HERE IN CONSIDERATION
+ * OF YOUR ACCEPTANCE OF SUCH TERMS AND CONDITIONS.
+ */
+
+def excluded = ['.gradlemodules', 'build.gradle', 'project.gradle', 'gradle.properties', 'HEADER', 'LICENSE', '.idea', 'config']
+
+def boolean boolOf (String input) {
+    return input.equalsIgnoreCase('y') || input.equalsIgnoreCase('yes') || input.equalsIgnoreCase('on') || input.equalsIgnoreCase('true')
+}
+
+task initProject {
+    description 'Initializes the project by the configuration'
+    group 'Project'
+} << {
+    if (boolOf(System.console().readLine('\nClean up existing project files? (y/n/yes/no): '))) {
+        println('Cleaning up')
+        for (File current : getProjectDir().listFiles()) {
+            if (!excluded.contains(current.getName())) {
+                println("Removing ${current.isDirectory() ? 'directory' : 'file'} ${current.getName()}...")
+                if (current.isDirectory()) {
+                    GFileUtils.deleteDirectory(current)
+                } else {
+                    current.delete()
+                }
+            }
+        }
+    }
+
+    def projName = System.console().readLine('\nEnter the new project\'s name: ')
+    if (projName != null && !projName.isEmpty() && !projName.equalsIgnoreCase('none') && !projName.equalsIgnoreCase('default')) {
+        getBinding().setVariable('ProjectName', projName)
+    }
+
+    def projVersion = System.console().readLine('Enter the project version (default is 1.0.0): ')
+    if (projVersion != null && !projVersion.isEmpty() && !projVersion.equalsIgnoreCase('none') && !projVersion.equalsIgnoreCase('default')) {
+        getBinding().setVariable('Version', projVersion)
+    } else {
+        projVersion = '1.0.0'
+    }
+
+    def projGroup = System.console().readLine('Enter the project group: ')
+    if (projGroup != null && !projGroup.isEmpty() && !projGroup.equalsIgnoreCase('none') && !projGroup.equalsIgnoreCase('default')) {
+        getBinding().setVariable('ProjectGroup', projGroup)
+    } else {
+        projGroup = null
+    }
+
+    def projDescription = System.console().readLine('Enter the project description: ')
+    if (projDescription != null && !projDescription.isEmpty() && !projDescription.equalsIgnoreCase('none') && !projDescription.equalsIgnoreCase('default')) {
+        getBinding().setVariable('Description', projDescription)
+    }
+
+    if (boolOf(System.console().readLine('Should the project\'s version appear in the generated jar\'s name? (y/n/yes/no): '))) {
+        getBinding().setVariable("VersionedName", true)
+    }
+
+    if (boolOf(System.console().readLine('Delete core jar (only if shadowJar is used)? (y/n/yes/no): '))) {
+        getBinding().setVariable("DeleteCore", true)
+    }
+
+    def authorName = System.console().readLine('Enter your name: ')
+    if (authorName != null && !authorName.isEmpty() && !authorName.equalsIgnoreCase('none') && !authorName.equalsIgnoreCase('default')) {
+        getBinding().setVariable('Author', authorName)
+    }
+
+    def authorEmailAddress = System.console().readLine('Enter your email address: ')
+    if (authorEmailAddress != null && !authorEmailAddress.isEmpty() && !authorEmailAddress.equalsIgnoreCase('none') && !authorEmailAddress.equalsIgnoreCase('default')) {
+        getBinding().setVariable('AuthorEmail', authorEmailAddress)
+    }
+
+    println('Saving project properties (gradle.properties file)...')
+    StringBuilder builder = new StringBuilder();
+    for (Object key : getBinding().getVariables().keySet()) {
+        builder.append("${key.toString()}=${getBinding().getVariable(key.toString())}\n")
+    }
+    File configFile = new File('gradle.properties');
+    GFileUtils.writeStringToFile(configFile, builder.toString())
+
+    println('Creating settings.gradle\n')
+    GFileUtils.writeStringToFile(new File('settings.gradle'), 'getRootProject().name = ProjectName\n')
+
+    if (projGroup == null) {
+        projGroup = ''
+    } else {
+        projGroup = projGroup.replaceAll('\\.', '\\/') + '/'
+    }
+
+    def sourceDir = "src/main/java/${projGroup}${projName}".toLowerCase()
+    def testDir = 'src/test/java'
+    def resDir = 'src/main/resources'
+    def testResDir = 'src/test/resources'
+
+    for (String current : [sourceDir, resDir, testDir, testResDir]) {
+        println("Creating directory ${current}...")
+        new File(current).mkdirs()
+    }
+
+    println('\nFinished!')
+    println('You can customize your project setup using the \'project.gradle\' file (or any other gradle file if you want).')
+    println('Available modules are found in the \'.gradlemodules\' directory, you can create own ones if you want.')
+}

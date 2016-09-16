@@ -1,0 +1,66 @@
+/*
+ * This file is part of the project gradle-base, licensed under the
+ * Creative Commons Attribution-NoDerivatives 4.0 International license.
+ *
+ * Copyright (c) 2016 Noki77 <dernoki77@gmail.com>
+ *
+ * You should have received a copy of the license along with this
+ * work. If not, see <http://creativecommons.org/licenses/by-nd/4.0/>.
+ *
+ * THIS SOFTWARE IS PROVIDED UNDER THE TERMS
+ * OF THIS CREATIVE COMMONS PUBLIC LICENSE ("CCPL" OR "LICENSE").
+ * THE SOFTWARE IS PROTECTED BY COPYRIGHT AND/OR OTHER APPLICABLE LAW.
+ * ANY USE OF THE WORK OTHER THAN AS AUTHORIZED UNDER THIS LICENSE
+ * OR COPYRIGHT LAW IS PROHIBITED.
+ *
+ * BY EXERCISING ANY RIGHTS TO THE SOFTWARE PROVIDED HERE,
+ * YOU ACCEPT AND AGREE TO BE BOUND BY THE TERMS OF THIS LICENSE.
+ * TO THE EXTENT THIS LICENSE MAY BE CONSIDERED TO BE A CONTRACT,
+ * THE LICENSOR GRANTS YOU THE RIGHTS CONTAINED HERE IN CONSIDERATION
+ * OF YOUR ACCEPTANCE OF SUCH TERMS AND CONDITIONS.
+ */
+
+apply plugin: 'java'
+
+def javaVersion = '1.8'
+if (hasConfigVar('JavaVersion')) {
+    javaVersion = getConfigVar('JavaVersion')
+}
+sourceCompatibility = javaVersion
+targetCompatibility = javaVersion
+
+ext.jarName = 'Unnamed.jar'
+if (getConfigBool('VersionedName')) {
+    jarName = "${getConfigVar('ProjectName')}-${getConfigVar('Version')}.jar"
+} else {
+    jarName = "${getConfigVar('ProjectName')}.jar"
+}
+
+configure ([compileJava, compileTestJava]) {
+    options.encoding = 'UTF-8'
+    options.deprecation = true
+    options.compilerArgs += ['-Xlint:all', '-Xlint:-path']
+}
+
+jar {
+    archiveName = jarName
+
+    if (hasConfigVar('MainClass')) {
+        manifest.attributes 'Main-Class': getConfigVar('MainClass')
+    }
+}
+
+sourceSets {
+    main.java.srcDir 'src/main/java'
+    test.java.srcDir 'src/main/test'
+}
+
+task testProject (type: JavaExec, dependsOn: build) {
+    description 'Runs the generated jar'
+    group 'Project'
+    if (hasConfigVar('MainClass')) {
+        classpath new File(getProjectDir(), "build/libs/${jarName}")
+        main getConfigVar('MainClass')
+    }
+}
+

@@ -1,0 +1,98 @@
+/*
+ * This file is part of the project gradle-base, licensed under the
+ * Creative Commons Attribution-NoDerivatives 4.0 International license.
+ *
+ * Copyright (c) 2016 Noki77 <dernoki77@gmail.com>
+ *
+ * You should have received a copy of the license along with this
+ * work. If not, see <http://creativecommons.org/licenses/by-nd/4.0/>.
+ *
+ * THIS SOFTWARE IS PROVIDED UNDER THE TERMS
+ * OF THIS CREATIVE COMMONS PUBLIC LICENSE ("CCPL" OR "LICENSE").
+ * THE SOFTWARE IS PROTECTED BY COPYRIGHT AND/OR OTHER APPLICABLE LAW.
+ * ANY USE OF THE WORK OTHER THAN AS AUTHORIZED UNDER THIS LICENSE
+ * OR COPYRIGHT LAW IS PROHIBITED.
+ *
+ * BY EXERCISING ANY RIGHTS TO THE SOFTWARE PROVIDED HERE,
+ * YOU ACCEPT AND AGREE TO BE BOUND BY THE TERMS OF THIS LICENSE.
+ * TO THE EXTENT THIS LICENSE MAY BE CONSIDERED TO BE A CONTRACT,
+ * THE LICENSOR GRANTS YOU THE RIGHTS CONTAINED HERE IN CONSIDERATION
+ * OF YOUR ACCEPTANCE OF SUCH TERMS AND CONDITIONS.
+ */
+
+apply from: '.gradlemodules/functions.gradle'
+
+buildscript {
+    File mvnPropertiesFile = rootProject.file('mvn.properties')
+    if (mvnPropertiesFile.isFile()) {
+        println 'Lade Repository-Zugangsdaten aus der Datei \'mvn.properties\''
+        if (!mvnPropertiesFile.canRead()) {
+            println 'Keine Leserechte auf Repository-Einstellungen!'
+        } else {
+            Properties mvnProps = new Properties()
+            mvnProps.load(new FileInputStream(mvnPropertiesFile))
+            project.ext.mvn_username = mvnProps.user
+            project.ext.mvn_password = mvnProps.password
+            project.ext.mvn_url = project.getProject().getProperty('MavenRepo')
+        }
+    } else {
+        if ((System.getenv()["NEXUS_USERNAME"] != null) && (System.getenv()["NEXUS_PASSWORD"] != null)) {
+            project.ext.mvn_username = System.getenv().get('NEXUS_USERNAME').toString()
+            project.ext.mvn_password = System.getenv().get('NEXUS_PASSWORD').toString()
+            project.ext.mvn_url = project.getProject().getProperty('MavenRepo')
+            println 'Repository-Zugangsdaten aus den Umgebungsvariablen geladen'
+        }
+    }
+
+    repositories {
+        mavenCentral()
+        maven {
+            url 'https://plugins.gradle.org/m2/'
+        }
+
+        if (project.hasProperty("mvn_username") && project.hasProperty("mvn_password") && project.hasProperty("mvn_url")) {
+            println "Verwende externes Maven-Repository (${project.mvn_url})"
+            maven {
+                credentials {
+                    username project.mvn_username
+                    password project.mvn_password
+                }
+                url project.mvn_url
+            }
+        }
+    }
+
+    dependencies {
+        def buildLibs = new File('builddeps')
+        if (buildLibs.exists() && buildLibs.isDirectory()) {
+            classpath fileTree(dir: 'builddeps', include: ['*.jar'])
+        }
+
+        classpath 'com.github.jengelman.gradle.plugins:shadow:1.2.3'
+        classpath 'gradle.plugin.nl.javadude.gradle.plugins:license-gradle-plugin:0.12.1'
+        classpath 'com.netflix.nebula:gradle-info-plugin:1.9.+'
+    }
+}
+
+enable 'configurations'
+
+defaultTasks 'licenseFormat', 'build'
+
+version = getConfigVar('Version')
+
+repositories {
+    mavenCentral()
+    if (project.hasProperty("mvn_username") && project.hasProperty("mvn_password") && project.hasProperty("mvn_url")) {
+        maven {
+            credentials {
+                username project.mvn_username
+                password project.mvn_password
+            }
+            url project.mvn_url
+        }
+    }
+}
+
+apply from: 'project.gradle'
+
+enable 'tasks'

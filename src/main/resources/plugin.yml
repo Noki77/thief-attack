@@ -1,0 +1,11 @@
+name: "ThiefAttack"
+author: "Noki77"
+main: "de.noki77.thiefattack.ThiefAttack"
+version: "1.0.0"
+depend:
+- "Core"
+commands:
+  thiefattack:
+    usage: "/<command>"
+    description: "Base command"
+    aliases: ["ta"]

@@ -1,0 +1,87 @@
+/*
+ * This file is part of the project gradle-base, licensed under the
+ * Creative Commons Attribution-NoDerivatives 4.0 International license.
+ *
+ * Copyright (c) 2016 Noki77 <dernoki77@gmail.com>
+ *
+ * You should have received a copy of the license along with this
+ * work. If not, see <http://creativecommons.org/licenses/by-nd/4.0/>.
+ *
+ * THIS SOFTWARE IS PROVIDED UNDER THE TERMS
+ * OF THIS CREATIVE COMMONS PUBLIC LICENSE ("CCPL" OR "LICENSE").
+ * THE SOFTWARE IS PROTECTED BY COPYRIGHT AND/OR OTHER APPLICABLE LAW.
+ * ANY USE OF THE WORK OTHER THAN AS AUTHORIZED UNDER THIS LICENSE
+ * OR COPYRIGHT LAW IS PROHIBITED.
+ *
+ * BY EXERCISING ANY RIGHTS TO THE SOFTWARE PROVIDED HERE,
+ * YOU ACCEPT AND AGREE TO BE BOUND BY THE TERMS OF THIS LICENSE.
+ * TO THE EXTENT THIS LICENSE MAY BE CONSIDERED TO BE A CONTRACT,
+ * THE LICENSOR GRANTS YOU THE RIGHTS CONTAINED HERE IN CONSIDERATION
+ * OF YOUR ACCEPTANCE OF SUCH TERMS AND CONDITIONS.
+ */
+
+def INCLUDE = 2
+def TRANSITIVE = 4
+def CHANGING = 8
+def FORCING = 16
+
+ext {
+    enable = {
+        String module ->
+        apply from: ".gradlemodules/${module}.gradle"
+    }
+
+    repo = {
+        String repoUrl ->
+        repositories {
+            maven { url repoUrl }
+        }
+    }
+
+    depend = {
+        String dependency, int params = 0 ->
+            dependencies {
+                compile (dependency) {
+                    if (hasBit(params, TRANSITIVE)) {
+                        transitive = false
+                    }
+                    if (isChanging != null) {
+                        changing = isChanging.booleanValue()
+                    }
+                    if (isForcing != null) {
+                        force = isForcing.booleanValue()
+                    }
+                }
+                if (include) {
+                    includedDepends dependency
+                }
+            }
+    }
+
+    getConfigVar = {
+        String name ->
+            if (getProject().hasProperty(name)) {
+                return getProject().getProperty(name);
+            } else {
+                return null;
+            }
+    }
+
+    getConfigBool = {
+        String name ->
+            if (getProject().hasProperty(name)) {
+                return Boolean.parseBoolean(getProject().getProperty(name))
+            } else {
+                return false
+            }
+    }
+
+    hasConfigVar = {
+        String name ->
+            return getProject().hasProperty(name)
+    }
+}
+
+def hasBit(target, bit) {
+    return (target & bit) != 0
+}
